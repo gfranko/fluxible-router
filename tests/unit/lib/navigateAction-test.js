@@ -7,6 +7,7 @@ var expect = require('chai').expect;
 var navigateAction = require('../../../lib/navigateAction');
 var createMockActionContext = require('fluxible/utils/createMockActionContext');
 var RouteStore = require('../../../').RouteStore;
+var jsdom = require('jsdom');
 
 describe('navigateAction', function () {
     var mockContext;
@@ -191,6 +192,29 @@ describe('navigateAction', function () {
             expect(err).to.be.an('object');
             expect(err.message).to.equal('RouteStore has not implemented `getCurrentRoute` method.');
             done();
+        });
+    });
+
+    describe('window.onbeforeunload', function () {
+        beforeEach(function () {
+            global.document = jsdom.jsdom('<html><body></body></html>');
+            global.window = global.document.parentWindow;
+            global.window.onbeforeunload = function () {
+                return 'this is a test';
+            };
+        });
+
+        afterEach(function () {
+            delete global.window;
+            delete global.document;
+        });
+
+        it ('should not call an action if there is a window.onbeforeunload method', function () {
+            navigateAction(mockContext, {
+                url: '/action'
+            }, function () {
+                expect(mockContext.executeActionCalls.length).to.equal(0);
+            });
         });
     });
 });
